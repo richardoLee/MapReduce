@@ -1,0 +1,10 @@
+cd src/main
+
+go build -race -buildmode=plugin ../mrapps/wc.go
+go run -race mrcoordinator.go pg-*.txt
+go test -race >out mrworker_test.go
+
+cd ./文档/MapReduce/test1/src/main
+dlv debug  mrcoordinator.go -- pg-*.txt
+
+& 0xc000225da0

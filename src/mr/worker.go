@@ -50,6 +50,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		task := Task{}
 		arg := ExampleArgs{}
 		call("Coordinator.HandOutTask", &arg, &task)
+		// fmt.Printf("Worker catch task address: %p\n", &task)
 
 		if task.State == Map {
 			mapFunc(&task, mapf)
@@ -67,8 +68,8 @@ func Worker(mapf func(string, string) []KeyValue,
 }
 
 func mapFunc(task *Task, mapf func(string, string) []KeyValue) {
-	log.Default().Printf(strconv.Itoa(task.TaskNums))
-
+	
+	// fmt.Printf("task address: %p\n", task)
 	file, err := ioutil.ReadFile(task.Input)
 	if err != nil {
 		log.Default().Printf(err.Error())
@@ -98,11 +99,16 @@ func mapFunc(task *Task, mapf func(string, string) []KeyValue) {
 			}
 		}
 		intermediateFile.Close()
+		
 	}
 	task.Intermediate = intermediateFileNames
-	arg := ExampleArgs{}
-	log.Default().Printf("Coordinator.FinishTask")
-	call("Coordinator.FinishTask", &arg, &task)
+	for _, v := range task.Intermediate {
+		log.Default().Printf(v)
+	}
+	reply := ExampleReply{}
+	log.Default().Printf("Coordinator.FinishTask Task No." + strconv.Itoa(task.TaskNums))
+	fmt.Printf("mapFunc finish after, task content is: %v\n", task)
+	call("Coordinator.FinishTask", task, &reply)
 
 }
 

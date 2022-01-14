@@ -1,6 +1,7 @@
 package mr
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -62,10 +63,12 @@ func (c *Coordinator) HandOutTask(args *ExampleArgs, reply *Task) error {
 			*reply = *<-c.TaskQueue
 			c.TaskMap[reply.TaskNums].StartStamp = time.Now()
 			c.TaskMap[reply.TaskNums].CoordinatorTaskState = InProgress
-			log.Default().Printf("c.state"+strconv.Itoa(int(c.State)))
-			log.Default().Printf("handout"+strconv.Itoa(reply.TaskNums))
+			log.Default().Printf("Coordinator state " + strconv.Itoa(int(c.State)))
+			log.Default().Printf("handout task " + strconv.Itoa(reply.TaskNums))
 		} else {
+
 			reply = &Task{State: Wait}
+			log.Default().Printf("handout wait " + strconv.Itoa(reply.TaskNums))
 		}
 	} else if c.State == Exit {
 		reply = &Task{State: Exit}
@@ -74,17 +77,15 @@ func (c *Coordinator) HandOutTask(args *ExampleArgs, reply *Task) error {
 	return nil
 }
 
-func (c *Coordinator) FinishTask(args *ExampleArgs, reply *Task) error {
+func (c *Coordinator) FinishTask(task *Task, reply *ExampleReply) error {
 	c.Lock.Lock()
-
-	if reply.State != c.State || c.TaskMap[reply.TaskNums].CoordinatorTaskState == Completed {
-
+	fmt.Printf("FinishTask catch after, task content is: %v\n", task)
+	if task.State != c.State || c.TaskMap[task.TaskNums].CoordinatorTaskState == Completed {
+		log.Default().Printf("Not Completed Task " + strconv.Itoa(int(task.TaskNums)) + " reply.State " + strconv.Itoa(int(task.State)) + " CoordinatorTaskState " + strconv.Itoa(int(c.TaskMap[task.TaskNums].CoordinatorTaskState)))
 	} else {
-		c.TaskMap[reply.TaskNums].CoordinatorTaskState = Completed
-		log.Default().Printf(strconv.Itoa(int(reply.TaskNums)))
-		log.Default().Printf(strconv.Itoa(int(reply.State)))
-		log.Default().Printf("Completed")
-		go c.postProcess(reply)
+		c.TaskMap[task.TaskNums].CoordinatorTaskState = Completed
+		log.Default().Printf("Completed TaskNums " + strconv.Itoa(int(task.TaskNums)))
+		go c.postProcess(task)
 	}
 	c.Lock.Unlock()
 	return nil
@@ -208,15 +209,12 @@ func (c *Coordinator) createReduceTasks() {
 
 func (c *Coordinator) postProcess(task *Task) {
 	c.Lock.Lock()
+
 	defer c.Lock.Unlock()
 	if task.State == Map {
+		// log.Default().Printf("postProcess task " + strconv.Itoa(int(task.State))+" in map")
 		for nReduceNo, intermediateFileName := range task.Intermediate {
 			c.Intermediates[nReduceNo] = append(c.Intermediates[nReduceNo], intermediateFileName)
-		}
-		for _, v := range c.Intermediates {
-			for _, kv := range v {
-				log.Printf(kv)
-			}
 		}
 
 		if c.checkAllTask() {
@@ -233,9 +231,11 @@ func (c *Coordinator) postProcess(task *Task) {
 func (c *Coordinator) checkAllTask() bool {
 	for _, taskIdentity := range c.TaskMap {
 		if taskIdentity.CoordinatorTaskState != Completed {
+			log.Default().Printf("checkAllTask return false")
 			return false
 		}
 	}
+	log.Default().Printf("checkAllTask return true")
 	return true
 }
 
