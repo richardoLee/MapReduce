@@ -67,11 +67,12 @@ func (c *Coordinator) HandOutTask(args *ExampleArgs, reply *Task) error {
 			log.Default().Printf("handout task " + strconv.Itoa(reply.TaskNums))
 		} else {
 
-			reply = &Task{State: Wait}
-			log.Default().Printf("handout wait " + strconv.Itoa(reply.TaskNums))
+			*reply = Task{State: Wait}
+			log.Default().Printf("handout wait, task content is: %v\n", reply)
 		}
 	} else if c.State == Exit {
-		reply = &Task{State: Exit}
+		*reply = Task{State: Exit}
+		log.Default().Printf("handout Exit, task content is: %v\n", reply)
 	}
 	c.Lock.Unlock()
 	return nil

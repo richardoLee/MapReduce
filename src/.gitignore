@@ -1,6 +1,7 @@
 *.*/
 main/mr-tmp/
 main/mr-X-Y/
+main/mr-out*
 mrtmp.*
 824-mrinput-*.txt
 /main/diff.out
@@ -11,3 +12,5 @@ mrtmp.*
 /main/mrcoordinator
 /main/mrsequential
 /main/mrworker
+recent
+main/out

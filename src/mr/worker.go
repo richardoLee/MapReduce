@@ -51,7 +51,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		arg := ExampleArgs{}
 		call("Coordinator.HandOutTask", &arg, &task)
 		// fmt.Printf("Worker catch task address: %p\n", &task)
-
+		log.Default().Printf("Worker catch, task content is: %v\n", task)
 		if task.State == Map {
 			mapFunc(&task, mapf)
 		} else if task.State == Reduce {
@@ -59,6 +59,7 @@ func Worker(mapf func(string, string) []KeyValue,
 		} else if task.State == Wait {
 			time.Sleep(5 * time.Second)
 		} else if task.State == Exit {
+			
 			return
 		}
 	}
@@ -68,7 +69,7 @@ func Worker(mapf func(string, string) []KeyValue,
 }
 
 func mapFunc(task *Task, mapf func(string, string) []KeyValue) {
-	
+
 	// fmt.Printf("task address: %p\n", task)
 	file, err := ioutil.ReadFile(task.Input)
 	if err != nil {
@@ -86,9 +87,11 @@ func mapFunc(task *Task, mapf func(string, string) []KeyValue) {
 	}
 
 	intermediateFileNames := make([]string, task.NReduce)
+	os.MkdirAll("mr-X-Y", os.ModePerm)
 	for i := 0; i < task.NReduce; i++ {
-		intermediateFileNames[i] = "mr-" + strconv.Itoa(task.TaskNums) + "-" + strconv.Itoa(i)
-		intermediateFile, _ := os.Create("mr-X-Y/" + intermediateFileNames[i])
+		intermediateFileNames[i] = "mr-X-Y/" + "mr-" + strconv.Itoa(task.TaskNums) + "-" + strconv.Itoa(i)
+		intermediateFile, _ := os.Create(intermediateFileNames[i])
+
 		enc := json.NewEncoder(intermediateFile)
 
 		for _, kv := range intermediateArray[i] {
@@ -99,15 +102,13 @@ func mapFunc(task *Task, mapf func(string, string) []KeyValue) {
 			}
 		}
 		intermediateFile.Close()
-		
+
 	}
 	task.Intermediate = intermediateFileNames
-	for _, v := range task.Intermediate {
-		log.Default().Printf(v)
-	}
+
 	reply := ExampleReply{}
-	log.Default().Printf("Coordinator.FinishTask Task No." + strconv.Itoa(task.TaskNums))
-	fmt.Printf("mapFunc finish after, task content is: %v\n", task)
+	// log.Default().Printf("Coordinator.FinishTask Task No." + strconv.Itoa(task.TaskNums))
+	// fmt.Printf("mapFunc finish after, task content is: %v\n", task)
 	call("Coordinator.FinishTask", task, &reply)
 
 }
@@ -157,8 +158,8 @@ func reduceFunc(task *Task, reducef func(string, []string) string) {
 	os.Rename(tmpFile.Name(), oname)
 	task.Output = oname
 
-	arg := ExampleArgs{}
-	call("Coordinator.FinishTask", &arg, &task)
+	reply := ExampleReply{}
+	call("Coordinator.FinishTask", task, &reply)
 
 }
 
